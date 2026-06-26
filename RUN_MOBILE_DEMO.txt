@@ -1,0 +1,67 @@
+SmartVisionX Mobile Demo Mode
+=============================
+
+1) Copy these files into your SmartVisionX project root:
+
+   server.py
+   web/index.html
+   requirements_mobile_demo.txt
+
+Your project should look like:
+
+SmartVisionX/
+  main.py
+  server.py
+  requirements_mobile_demo.txt
+  web/
+    index.html
+  Pipelines/
+    scene_pipeline.py
+    ocr_pipeline.py
+    object_pipeline.py
+    navigation_pipeline.py
+    decision_engine.py
+  Models/
+    Text Recognition/
+      best_smartvisionx_crnn_lowercase.pt
+    Navigation/
+      best_outdoor_navigation.pt
+      best_indoor_rgbd_navigation.pt
+    Scene Recognition/
+      Scene Recognition.pth
+    Object Detection/
+      yolov8n.pt
+
+2) Install requirements:
+
+   pip install -r requirements_mobile_demo.txt
+
+3) Run server:
+
+   python server.py --host 0.0.0.0 --port 8000 --device cpu
+
+or if CUDA works:
+
+   python server.py --host 0.0.0.0 --port 8000 --device cuda
+
+4) Get laptop IP:
+
+   Windows:
+     ipconfig
+
+   Look for IPv4 Address, example:
+     192.168.1.7
+
+5) Open from phone browser:
+
+   http://192.168.1.7:8000
+
+Important:
+- Phone and laptop must be on the same Wi-Fi.
+- Allow firewall access for Python when Windows asks.
+- If phone camera does not open because of HTTP security, use Chrome flags:
+  chrome://flags
+  Enable: Insecure origins treated as secure
+  Add your server URL, example:
+  http://192.168.1.7:8000
+
