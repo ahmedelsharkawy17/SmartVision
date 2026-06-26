@@ -1,0 +1,1260 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>SmartVision+ – Blind Assist </title>
+  <style>
+    :root {
+      --bg: #050a14; --bg2: #0d1526; --card: rgba(15,22,40,.85);
+      --stroke: rgba(148,163,184,.15); --text: #f0f4ff; --muted: #7a8fb5;
+      --blue: #3b82f6; --blue2: #1d4ed8; --green: #22c55e; --green2: #15803d;
+      --red: #ef4444; --red2: #991b1b; --amber: #f59e0b; --cyan: #06b6d4;
+      --purple: #a855f7; --teal: #14b8a6;
+      --shadow: 0 20px 60px rgba(0,0,0,.5); --radius: 20px;
+      --btn-min: 64px;
+    }
+    *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; min-height: 100%; font-family: system-ui, -apple-system, Arial, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; font-size: 18px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden;
+      clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    .hidden { display: none !important; }
+
+    header { position: sticky; top: 0; z-index: 20; padding: 14px 18px;
+      background: rgba(5,10,20,.92); backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--stroke); }
+    .topbar { max-width: 600px; margin: 0 auto; display: flex; align-items: center;
+      justify-content: space-between; gap: 12px; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .logo { width: 44px; height: 44px; border-radius: 14px; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--blue), var(--cyan));
+      display: grid; place-items: center; font-weight: 900; font-size: 15px; }
+    h1 { font-size: 20px; margin: 0; letter-spacing: -.3px; }
+    .subtitle { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .version-tag { font-size: 10px; color: var(--teal); margin-top: 2px;
+      font-family: ui-monospace, monospace; opacity: 0.7; }
+    #connPill { font-size: 13px; padding: 7px 14px; border-radius: 999px;
+      border: 1px solid rgba(34,197,94,.3); background: rgba(34,197,94,.1);
+      color: #86efac; white-space: nowrap; }
+    #connPill.error { border-color: rgba(239,68,68,.3); background: rgba(239,68,68,.1); color: #fca5a5; }
+
+    #alertBanner { max-width: 600px; margin: 14px auto 0; padding: 0 14px; }
+    #alertBox { border-radius: var(--radius); padding: 22px 20px; font-size: 22px;
+      font-weight: 800; line-height: 1.3; letter-spacing: -.3px; text-align: center;
+      border: 2px solid transparent; transition: background .25s, border-color .25s; }
+    #alertBox.ok     { background: rgba(34,197,94,.12); border-color: rgba(34,197,94,.35); color: #bbf7d0; }
+    #alertBox.warn   { background: rgba(245,158,11,.10); border-color: rgba(245,158,11,.3); color: #fde68a; }
+    #alertBox.danger { background: rgba(239,68,68,.14); border-color: rgba(239,68,68,.45); color: #fecaca; }
+    #alertBox.ocr    { background: rgba(6,182,212,.12); border-color: rgba(6,182,212,.35); color: #a5f3fc; }
+    #alertBox.loc    { background: rgba(168,85,247,.16); border-color: rgba(168,85,247,.45); color: #e9d5ff; }
+
+    .app { max-width: 600px; margin: 0 auto; padding: 14px; display: flex;
+      flex-direction: column; gap: 14px; }
+
+    .video-card { position: relative; border-radius: var(--radius); overflow: hidden;
+      border: 1px solid var(--stroke); background: #020617; aspect-ratio: 4/3;
+      display: grid; place-items: center; }
+    video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .video-empty { position: absolute; text-align: center; color: var(--muted); padding: 24px; }
+    .video-empty .icon { font-size: 40px; margin-bottom: 8px; }
+    .scan-line { position: absolute; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      box-shadow: 0 0 18px var(--cyan); opacity: 0; top: 50%;
+      transition: opacity .3s; pointer-events: none; }
+    .running .scan-line { opacity: .85; animation: scanAnim 2s ease-in-out infinite; }
+    @keyframes scanAnim { 0%,100% { transform: translateY(-80px); } 50% { transform: translateY(80px); } }
+
+    .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .btn { border: 0; border-radius: 18px; padding: 0 16px;
+      min-height: var(--btn-min); color: white; font-size: 17px; font-weight: 800;
+      cursor: pointer; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 4px; box-shadow: 0 8px 20px rgba(0,0,0,.3);
+      transition: transform .12s, opacity .2s, filter .2s;
+      -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+    .btn:active { transform: scale(.96); }
+    .btn:focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
+    .btn.locked { opacity: .5; filter: saturate(.4); pointer-events: none; }
+    .btn.voice-btn { background: linear-gradient(135deg, var(--purple), #6b21a8); }
+    .btn.save-loc  { background: linear-gradient(135deg, #14b8a6, #0f766e); }
+    .btn.emergency { grid-column: 1 / -1; background: linear-gradient(135deg, #dc2626, #7f1d1d);
+      font-size: 20px; min-height: 72px; }
+    .btn .sub { font-size: 12px; font-weight: 600; opacity: .75; }
+
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .card { background: var(--card); border: 1px solid var(--stroke); border-radius: 16px;
+      padding: 14px 16px; }
+    .card-label { color: var(--muted); font-size: 12px; text-transform: uppercase;
+      letter-spacing: .1em; margin-bottom: 6px; }
+    .card-value { font-size: 16px; font-weight: 700; word-break: break-word; line-height: 1.3; }
+    .card-value.small { font-size: 14px; font-weight: 600; color: #cbd5e1; }
+
+    .places { display: flex; flex-direction: column; gap: 8px; }
+    .place-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+      background: var(--card); border: 1px solid var(--stroke); border-radius: 14px; }
+    .place-name { flex: 1; font-weight: 700; font-size: 16px; }
+    .place-go   { border: 0; border-radius: 10px; padding: 8px 14px; min-height: 40px;
+      background: linear-gradient(135deg, var(--blue), var(--blue2));
+      color: white; font-weight: 800; cursor: pointer; }
+    .place-go:active { transform: scale(.97); }
+    .place-del  { border: 0; background: transparent; color: #fca5a5; font-size: 18px;
+      cursor: pointer; padding: 4px 8px; }
+    .places-empty { color: var(--muted); font-size: 14px; padding: 10px;
+      background: var(--card); border: 1px dashed var(--stroke); border-radius: 14px; text-align: center; }
+    .profile-badge { font-size: 10px; padding: 2px 6px; border-radius: 6px;
+      background: rgba(20,184,166,.2); color: #5eead4; font-weight: 700;
+      letter-spacing: .04em; margin-left: 4px; }
+    .profile-badge.missing { background: rgba(148,163,184,.15); color: var(--muted); }
+
+    /* Target HUD with 4-signal breakdown (M4 rebalanced) */
+    .target-hud { display: none; padding: 14px 16px; border-radius: 16px;
+      background: rgba(168,85,247,.14); border: 1px solid rgba(168,85,247,.4); }
+    .target-hud.active { display: block; }
+    .target-title { font-size: 18px; font-weight: 800; color: #e9d5ff; margin-bottom: 6px; }
+    .target-msg   { font-size: 15px; color: #cbd5e1; margin-bottom: 8px; min-height: 18px; }
+    .target-bar   { font-family: ui-monospace, monospace; font-size: 14px; color: #ddd6fe;
+                    margin-bottom: 10px; }
+    .signal-grid { display: grid; gap: 6px; }
+    .signal-grid-4 { grid-template-columns: repeat(4, 1fr); }
+    .sig { display: flex; flex-direction: column; align-items: center;
+           padding: 8px 4px; background: rgba(0,0,0,.25);
+           border: 1px solid rgba(168,85,247,.25); border-radius: 8px;
+           transition: background .2s, border-color .2s; }
+    .sig-name  { font-size: 9px; color: #c4b5fd; text-transform: uppercase;
+                 letter-spacing: .04em; text-align: center; }
+    .sig-score { font-family: ui-monospace, monospace; font-size: 14px;
+                 font-weight: 800; color: #fff; margin-top: 2px; }
+    .sig.agrees { border-color: rgba(34,197,94,.6);
+                  background: rgba(34,197,94,.18); }
+    .sig.absent  { opacity: 0.35; }
+    .gradient-line { margin-top: 10px; padding: 8px 10px; background: rgba(20,184,166,.12);
+                     border-left: 3px solid var(--teal); border-radius: 8px;
+                     font-size: 13px; color: #99f6e4; }
+    .target-reason { margin-top: 8px; font-size: 12px; color: #ddd6fe;
+                     font-family: ui-monospace, monospace; }
+
+    /* Save modal (M4: profile progress) */
+    .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none;
+      align-items: center; justify-content: center; z-index: 50; padding: 20px; }
+    .modal-bg.show { display: flex; }
+    .modal { background: var(--bg2); border: 1px solid var(--stroke); border-radius: 20px;
+      padding: 22px; max-width: 380px; width: 100%; }
+    .modal h3 { margin: 0 0 12px 0; }
+    .modal p  { color: var(--muted); font-size: 14px; margin-top: 0; }
+    .modal input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--stroke);
+      background: rgba(0,0,0,.4); color: var(--text); font-size: 16px; }
+    .modal .row { display: flex; gap: 10px; margin-top: 14px; }
+    .modal .row .btn { flex: 1; min-height: 56px; }
+    .profile-progress { margin: 14px 0 4px; }
+    .progress-label { font-size: 13px; color: var(--teal); margin-bottom: 6px;
+                      font-family: ui-monospace, monospace; }
+    .progress-bar-bg { width: 100%; height: 10px; background: rgba(0,0,0,.4);
+                       border-radius: 5px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--teal), var(--cyan));
+                         width: 0%; transition: width 0.1s linear; }
+    .profile-status { font-size: 12px; color: var(--muted); margin-top: 6px;
+                      font-family: ui-monospace, monospace; }
+
+    .det-card { border-radius: 16px; background: var(--card); border: 1px solid var(--stroke); padding: 14px 16px; }
+    .det-item { display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; padding: 8px 0; border-top: 1px solid rgba(148,163,184,.1); font-size: 15px; }
+    .det-item:first-child { border-top: 0; }
+    .badge { font-size: 12px; padding: 3px 10px; border-radius: 999px; font-weight: 700; }
+    .badge.high   { background: rgba(239,68,68,.2); color: #fca5a5; }
+    .badge.medium { background: rgba(245,158,11,.18); color: #fde68a; }
+    .badge.low    { background: rgba(34,197,94,.15); color: #86efac; }
+
+    .status-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+      background: var(--card); border: 1px solid var(--stroke); border-radius: 16px;
+      font-size: 14px; color: var(--muted); }
+    #statusDot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+      background: var(--amber); box-shadow: 0 0 8px currentColor; transition: background .3s; }
+    #statusDot.live  { background: var(--green); }
+    #statusDot.error { background: var(--red); }
+    #statusText { flex: 1; }
+    #latencyEl  { font-size: 12px; }
+
+    details { border-radius: 16px; background: var(--card); border: 1px solid var(--stroke); }
+    summary { padding: 14px 16px; cursor: pointer; font-weight: 700; font-size: 15px;
+      list-style: none; display: flex; align-items: center; gap: 8px; }
+    summary::-webkit-details-marker { display: none; }
+    .help-body { padding: 0 16px 14px; color: var(--muted); font-size: 14px; line-height: 1.7; }
+    .help-body strong { color: #cbd5e1; }
+    .help-body code  { background: rgba(0,0,0,.4); padding: 1px 6px; border-radius: 4px;
+                       color: #5eead4; font-size: 12px; }
+
+    #ariaLive { position: absolute; left: -9999px; top: 0; }
+  </style>
+</head>
+<body>
+
+<div id="ariaLive" aria-live="assertive" aria-atomic="true" role="status"></div>
+<a class="sr-only" href="#mainControls">Skip to controls</a>
+
+<header role="banner">
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">SVX</div>
+      <div>
+        <h1>SmartVision+</h1>
+        <div class="subtitle">AI environment assistant for blind users</div>
+        <div class="version-tag">M4 · path metrics navigation</div>
+      </div>
+    </div>
+    <div id="connPill" role="status" aria-label="Connection status">● Ready</div>
+  </div>
+</header>
+
+<div id="alertBanner" role="region" aria-label="Current alert">
+  <div id="alertBox" class="warn" aria-live="assertive" aria-atomic="true">
+    Say <strong>"Start Camera"</strong> to begin
+  </div>
+</div>
+
+<main class="app" role="main">
+
+  <div id="videoWrap" class="video-card" aria-hidden="true">
+    <video id="video" autoplay playsinline muted></video>
+    <div id="videoEmpty" class="video-empty">
+      <div class="icon">📷</div>
+      <div>Camera off</div>
+    </div>
+    <div class="scan-line" aria-hidden="true"></div>
+  </div>
+
+  <section id="mainControls" aria-label="Controls" class="controls">
+    <button id="voiceBtn"   class="btn voice-btn"
+            aria-label="Start voice command" accesskey="v">
+      🎙️ Voice <span class="sub" aria-hidden="true">Say a command</span>
+    </button>
+    <button id="saveLocBtn" class="btn save-loc"
+            aria-label="Save the current view as a new location" accesskey="k">
+      💾 Save Place <span class="sub" aria-hidden="true">3-sec profile</span>
+    </button>
+    <button id="emergencyBtn" class="btn emergency"
+            aria-label="Emergency — send GPS location" accesskey="e">
+      🚨 Emergency <span class="sub" aria-hidden="true">Share GPS location</span>
+    </button>
+  </section>
+
+  <!-- Target HUD with 4-signal breakdown (M4 rebalanced) -->
+  <section id="targetHud" class="target-hud" aria-label="Current navigation target">
+    <div class="target-title" id="targetTitle">Target: —</div>
+    <div class="target-msg"   id="targetMsg">—</div>
+    <div class="target-bar"   id="targetBar">[--------------------]   0%</div>
+
+    <div class="signal-grid signal-grid-4" aria-label="Four-signal arrival breakdown">
+      <div class="sig" id="sigSceneBox">
+        <span class="sig-name">Scene</span>
+        <span class="sig-score"  id="sigScene">—</span>
+      </div>
+      <div class="sig" id="sigObjectBox">
+        <span class="sig-name">Object</span>
+        <span class="sig-score" id="sigObject">—</span>
+      </div>
+      <div class="sig" id="sigPathMetricBox">
+        <span class="sig-name">Path&nbsp;M4</span>
+        <span class="sig-score"  id="sigPathMetric">—</span>
+      </div>
+      <div class="sig" id="sigVisualBox">
+        <span class="sig-name">Visual</span>
+        <span class="sig-score" id="sigVisual">—</span>
+      </div>
+    </div>
+
+    <div class="gradient-line hidden" id="gradientLine">
+      <strong>🧭 Path guidance:</strong> <span id="gradientText">—</span>
+    </div>
+    <div class="target-reason" id="targetReason">—</div>
+  </section>
+
+  <div class="status-bar" role="status" aria-label="System status">
+    <div id="statusDot" aria-hidden="true"></div>
+    <span id="statusText">Ready</span>
+    <span id="latencyEl" aria-label="Latency"></span>
+  </div>
+
+  <section aria-label="Analysis details" class="info-grid">
+    <div class="card">
+      <div class="card-label" id="scene-lbl">Scene</div>
+      <div id="scene" class="card-value" aria-labelledby="scene-lbl">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label" id="nav-lbl">Navigation</div>
+      <div id="nav" class="card-value" aria-labelledby="nav-lbl">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label" id="ocr-lbl">OCR Text</div>
+      <div id="ocr" class="card-value small" aria-labelledby="ocr-lbl">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label" id="risk-lbl">Risk Score</div>
+      <div id="riskScore" class="card-value" aria-labelledby="risk-lbl">—</div>
+    </div>
+  </section>
+
+  <section class="card" aria-label="Saved places">
+    <div class="card-label">Saved Places
+      <span style="float:right; font-weight: 600; color: #93c5fd; cursor: pointer;"
+            id="refreshPlacesBtn" tabindex="0" role="button"
+            aria-label="Refresh saved places">⟳</span>
+    </div>
+    <div id="places" class="places">
+      <div class="places-empty">No saved places yet. Press <strong>Save Place</strong> to
+        capture a 3-second path profile and name the location.</div>
+    </div>
+  </section>
+
+  <div class="det-card" role="region" aria-label="Detected objects">
+    <div class="card-label">Detected Objects</div>
+    <div id="detections" aria-live="polite">—</div>
+  </div>
+
+  <details>
+    <summary>ℹ️ Voice commands &amp; tips</summary>
+    <div class="help-body">
+      <strong>Shortcuts (Alt + key):</strong><br>
+      Alt+V — Voice &nbsp;|&nbsp; Alt+K — Save place &nbsp;|&nbsp;
+      Alt+E — Emergency<br><br>
+
+      <strong>Voice commands (tap 🎙️ Voice, then speak):</strong><br>
+      • <code>start camera</code> / <code>begin</code> / <code>start analysis</code> — start the camera<br>
+      • <code>stop camera</code> / <code>end camera</code> / <code>shut down</code> — stop the camera<br>
+      • <code>read text</code> / <code>what does it say</code> — read text in view (silent until result)<br>
+      • <code>repeat</code> / <code>say again</code> — repeat last alert aloud<br>
+      • <code>stop navigation</code> / <code>cancel</code> — cancel current navigation target<br>
+      • <code>save place</code> — open the save-location dialog<br>
+      • <code>save as &lt;name&gt;</code> — save current view with a name (e.g. <code>save as bathroom</code>)<br>
+      • <code>emergency</code> / <code>help</code> / <code>sos</code> / <code>i need help</code> — send emergency GPS<br>
+      • <code>list places</code> / <code>show places</code> — list all saved places<br>
+      • <code>go to &lt;place&gt;</code> / <code>navigate to &lt;place&gt;</code> — navigate to a saved place<br>
+      • <code>go home</code> — navigate to home<br><br>
+
+      <strong>About button clicks:</strong><br>
+      Pressing a button is <em>silent</em> — it does not announce itself.
+      The system only speaks the <strong>result</strong> of the action
+      (e.g. "Camera started", "Could not save place: …").<br><br>
+
+      <strong>Saving a place (M4 3-second profile):</strong><br>
+      1. Start the camera first (say <code>start camera</code>).<br>
+      2. Say <code>save place</code> or <code>save as &lt;name&gt;</code>.<br>
+      3. Hold the camera steady at the destination for <strong>3 seconds</strong>.<br>
+      4. The system builds a 10-metric path profile automatically.<br><br>
+
+      <strong>Note:</strong> Saving requires the camera to be running — the
+      system needs live frames to build the path profile. If you say
+      <code>save as &lt;name&gt;</code> while the camera is off, the system
+      will refuse and tell you to start the camera first.<br><br>
+
+      <strong>Arrival detection (4 reliable signals, weighted vote):</strong><br>
+      • <strong>Scene</strong> (weight 0.25) – room classifier agrees<br>
+      • <strong>Object</strong> (weight 0.25) – landmark objects (e.g. toilet) detected<br>
+      • <strong>Path M4</strong> (weight 0.25) – 10-metric path profile similarity<br>
+      • <strong>Visual</strong> (weight 0.15) – scene fingerprint (supporting)<br>
+      Arrival is announced when the combined score is at least 0.40 and at least
+      <strong>2 of 4</strong> signals agree.
+    </div>
+  </details>
+</main>
+
+<!-- Save modal (M4) -->
+<div id="saveModal" class="modal-bg" role="dialog" aria-modal="true" aria-label="Save location">
+  <div class="modal">
+    <h3>Save this place</h3>
+    <p>Give this place a short, unique name (e.g. <em>bathroom</em>, <em>kitchen</em>).
+       After confirming, hold the camera steady for <strong>3 seconds</strong> so the
+       system can build a path profile for navigation.</p>
+    <input id="saveNameInput" type="text" placeholder="e.g. bathroom"
+           aria-label="Location name" autocomplete="off" />
+
+    <div id="profileProgress" class="profile-progress hidden">
+      <div class="progress-label">🧭 Building path profile…</div>
+      <div class="progress-bar-bg">
+        <div id="profileFill" class="progress-bar-fill"></div>
+      </div>
+      <div id="profileStatus" class="profile-status">Capturing frames…</div>
+    </div>
+
+    <div class="row">
+      <button class="btn stop-btn" id="saveCancelBtn">Cancel</button>
+      <button class="btn primary"  id="saveConfirmBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  SmartVisionX — Mobile Client (M4 rebalanced, 4-signal vote)
+// ============================================================
+const $ = id => document.getElementById(id);
+
+const video       = $('video');
+const alertBox    = $('alertBox');
+const ariaLive    = $('ariaLive');
+const sceneEl     = $('scene');
+const navEl       = $('nav');
+const ocrEl       = $('ocr');
+const riskEl      = $('riskScore');
+const latencyEl   = $('latencyEl');
+const detectionsEl= $('detections');
+const videoWrap   = $('videoWrap');
+const videoEmpty  = $('videoEmpty');
+const connPill    = $('connPill');
+const statusDot   = $('statusDot');
+const statusText  = $('statusText');
+const emergencyBtn= $('emergencyBtn');
+const voiceBtn    = $('voiceBtn');
+const saveLocBtn  = $('saveLocBtn');
+const placesEl    = $('places');
+const targetHud   = $('targetHud');
+const targetTitle = $('targetTitle');
+const targetMsg   = $('targetMsg');
+const targetBar   = $('targetBar');
+const targetReason= $('targetReason');
+const sigVisual   = $('sigVisual');
+const sigObject   = $('sigObject');
+const sigScene    = $('sigScene');
+const sigPathMetric= $('sigPathMetric');
+const sigVisualBox= $('sigVisualBox');
+const sigObjectBox= $('sigObjectBox');
+const sigSceneBox = $('sigSceneBox');
+const sigPathMetricBox = $('sigPathMetricBox');
+const gradientLine= $('gradientLine');
+const gradientText= $('gradientText');
+const refreshPlacesBtn = $('refreshPlacesBtn');
+const saveModal   = $('saveModal');
+const saveNameInput = $('saveNameInput');
+const saveConfirmBtn = $('saveConfirmBtn');
+const saveCancelBtn  = $('saveCancelBtn');
+const profileProgress = $('profileProgress');
+const profileFill = $('profileFill');
+const profileStatus= $('profileStatus');
+
+// ── State ───────────────────────────────────────────────────
+let stream            = null;
+let running           = false;
+let busy              = false;
+let ocrLock           = false;     // soft "OCR in progress" lock
+let lastSpoken        = '';
+let lastAlert         = '';
+let lastLocationState = 'idle';
+let lastLocationMsg   = '';
+let lastSafeScores    = null;
+let voiceLock         = false;
+let savingInProgress  = false;     // M4: blocks analyse during profile capture
+const INTERVAL_MS     = 950;
+const EMERGENCY_PHONE = '201003882574';
+
+// M4: 10 metric keys (must match server's path_metrics.METRIC_KEYS)
+const METRIC_KEYS = [
+  'free_space_ratio', 'corridor_score', 'avg_safe_width',
+  'obstacle_density', 'approach_clarity', 'forward_safety_avg',
+  'lateral_safety_balance', 'depth_openness', 'path_centrality',
+  'vertical_openness'
+];
+const HIST_BINS = 8;
+
+// ── Audio ───────────────────────────────────────────────────
+let ttsQueue = [], ttsBusy = false, ttsEnabled = true;
+function _playNext() {
+  if (!ttsEnabled || ttsQueue.length === 0) { ttsBusy = false; return; }
+  ttsBusy = true;
+  const { text, rate } = ttsQueue.shift();
+  try {
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate  = rate || 1.05; u.pitch = 1; u.lang  = 'en-US';
+    u.onend   = () => { ttsBusy = false; _playNext(); };
+    u.onerror  = () => { ttsBusy = false; _playNext(); };
+    speechSynthesis.speak(u);
+  } catch(e) { ttsBusy = false; _playNext(); }
+}
+function speak(text, { force = false, rate = 1.05 } = {}) {
+  if (!text) return;
+  if (voiceLock && !force) return;
+  if (!force && text === lastSpoken) return;
+  lastSpoken = text;
+  ariaLive.textContent = '';
+  requestAnimationFrame(() => { ariaLive.textContent = text; });
+  if (force) {
+    try { speechSynthesis.cancel(); } catch(e) {}
+    ttsQueue = []; ttsBusy = false;
+  }
+  ttsQueue.push({ text, rate });
+  if (!ttsBusy) _playNext();
+}
+function repeatAlert() {
+  if (ocrLock) return;
+  const t = alertBox.textContent.trim();
+  if (t) { lastSpoken = ''; speak(t, { force: true }); }
+}
+function vibrate(p) { if (navigator.vibrate) navigator.vibrate(p); }
+
+// ── UI helpers ───────────────────────────────────────────────
+function setAlert(text, type = 'warn') {
+  if (!text) return;
+  alertBox.textContent = text;
+  alertBox.className   = type;
+}
+function setStatus(text, dotClass = '') {
+  statusText.textContent = text;
+  statusDot.className    = dotClass;
+}
+function setConn(text, isError = false) {
+  connPill.textContent = text;
+  connPill.className   = isError ? 'error' : '';
+}
+
+function renderDetections(dets) {
+  if (!dets || !dets.length) { detectionsEl.textContent = 'None detected'; return; }
+  detectionsEl.innerHTML = dets.map(d => `
+    <div class="det-item">
+      <span>${d.name}</span>
+      <span class="badge ${(d.danger || 'low').toLowerCase()}">
+        ${d.danger || 'low'} · ${Math.round((d.confidence || 0) * 100)}%
+      </span>
+    </div>`).join('');
+}
+
+function renderPlaces(places) {
+  if (!places || !places.length) {
+    placesEl.innerHTML = `<div class="places-empty">No saved places yet. Press
+      <strong>Save Place</strong> to capture a 3-second path profile and name the location.</div>`;
+    return;
+  }
+  placesEl.innerHTML = places.map(p => {
+    const profileBadge = p.has_path_profile
+      ? `<span class="profile-badge" title="Path profile attached">M4 ✓</span>`
+      : `<span class="profile-badge missing" title="No path profile (old save)">M4 —</span>`;
+    return `
+    <div class="place-row" data-name="${p.name}">
+      <div class="place-name">📍 ${p.display_name}${profileBadge}<br>
+        <small style="color: var(--muted); font-weight: 500; font-size: 12px;">
+          refs: ${p.reference_count}${p.expected_objects && p.expected_objects.length ? ' · ' + p.expected_objects.slice(0,3).join(', ') : ''}
+        </small>
+      </div>
+      <button class="place-go" data-go="${p.name}" aria-label="Navigate to ${p.display_name}">Go</button>
+      <button class="place-del" data-del="${p.name}" aria-label="Delete ${p.display_name}">✕</button>
+    </div>`;
+  }).join('');
+  placesEl.querySelectorAll('[data-go]').forEach(b => {
+    b.onclick = () => navigateTo(b.getAttribute('data-go'));
+  });
+  placesEl.querySelectorAll('[data-del]').forEach(b => {
+    b.onclick = () => deletePlace(b.getAttribute('data-del'));
+  });
+}
+
+function renderTarget(loc) {
+  if (!loc || !loc.location_state || loc.location_state === 'idle') {
+    targetHud.classList.remove('active');
+    lastLocationState = 'idle';
+    return;
+  }
+  const state = loc.location_state;
+  targetHud.classList.add('active');
+  const display = loc.location_target_display || loc.location_target;
+  targetTitle.textContent = `Target: ${display}  [${state.toUpperCase()}]`;
+  targetMsg.textContent   = loc.location_message || '';
+  targetBar.textContent   = loc.location_progress ||
+                            '[--------------------]   0%';
+
+  const arrival = loc.location_arrival;
+  if (arrival && arrival.signals) {
+    const s = arrival.signals;
+    const update = (scoreEl, boxEl, sig) => {
+      if (!sig) { scoreEl.textContent = '—'; boxEl.classList.remove('agrees');
+                  boxEl.classList.add('absent'); return; }
+      scoreEl.textContent = `${Math.round(sig.score * 100)}%`;
+      boxEl.classList.toggle('agrees', !!sig.agrees);
+      boxEl.classList.remove('absent');
+    };
+    update(sigScene,       sigSceneBox,       s.scene);
+    update(sigObject,      sigObjectBox,      s.object);
+    update(sigPathMetric,  sigPathMetricBox,  s.path_metric);
+    update(sigVisual,      sigVisualBox,      s.visual);
+
+    if (!s.path_metric || (s.path_metric.raw && s.path_metric.raw.neutral)) {
+      sigPathMetric.textContent = '—';
+      sigPathMetricBox.classList.add('absent');
+    }
+
+    const note = arrival.blocked_by_safety ? '  ⚠ blocked by safety' : '';
+    const agreedNames = ['scene','object','path_metric','visual']
+      .filter(k => s[k] && s[k].agrees);
+    const agreedText = agreedNames.length ? ` (${agreedNames.join(', ')})` : '';
+    targetReason.textContent =
+      `Score ${(arrival.final_score * 100).toFixed(0)}% — ` +
+      `${arrival.agree_count}/4 agree${agreedText} — ` +
+      `streak ${arrival.streak}/2${note}`;
+  } else {
+    [sigVisual, sigObject, sigScene, sigPathMetric].forEach(el => el.textContent = '—');
+    [sigVisualBox, sigObjectBox, sigSceneBox, sigPathMetricBox].forEach(el => {
+      el.classList.remove('agrees'); el.classList.add('absent');
+    });
+    targetReason.textContent = '';
+  }
+
+  if (loc.location_gradient) {
+    gradientLine.classList.remove('hidden');
+    gradientText.textContent = loc.location_gradient;
+  } else {
+    gradientLine.classList.add('hidden');
+    gradientText.textContent = '—';
+  }
+
+  lastLocationState = state;
+  if (state === 'arrived') vibrate([80, 40, 80, 40, 200]);
+}
+
+// ── Saved places API ─────────────────────────────────────────
+async function loadPlaces() {
+  try {
+    const r = await fetch('/locations');
+    if (!r.ok) throw new Error(await r.text());
+    const d = await r.json();
+    renderPlaces(d.locations || []);
+  } catch (e) {
+    placesEl.innerHTML = `<div class="places-empty">Could not load saved places: ${e.message}</div>`;
+  }
+}
+async function deletePlace(name) {
+  if (!confirm(`Delete saved place "${name}"?`)) return;
+  try {
+    const r = await fetch(`/locations/${encodeURIComponent(name)}`, { method: 'DELETE' });
+    if (!r.ok) throw new Error(await r.text());
+    speak(`Deleted ${name.replace(/_/g, ' ')}.`, { force: true });
+    loadPlaces();
+  } catch (e) {
+    speak(`Could not delete: ${e.message}`, { force: true });
+  }
+}
+async function navigateTo(target) {
+  try {
+    const r = await fetch('/navigate_to', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ target }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail || r.statusText);
+    const resolved = d.resolved || target;
+    const msg = (d.status && d.status.location_message) ||
+                `Navigating to ${resolved.replace(/_/g,' ')}.`;
+    setAlert(msg, 'loc');
+    speak(msg, { force: true });
+    lastLocationMsg = msg;
+  } catch (e) {
+    speak(`Could not navigate: ${e.message}`, { force: true });
+  }
+}
+async function stopNav() {
+  try {
+    await fetch('/stop_navigation', { method: 'POST' });
+    speak('Navigation cancelled.', { force: true });
+    setAlert('Navigation cancelled.', 'warn');
+    targetHud.classList.remove('active');
+  } catch (e) { /* ignore */ }
+}
+
+// ── Camera ──────────────────────────────────────────────────
+async function startCamera() {
+  vibrate([30]);
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    const msg = 'Camera requires HTTPS. Please open the Cloudflare Tunnel link.';
+    setAlert(msg, 'danger');
+    speak(msg, { force: true });
+    return false;
+  }
+  setAlert('Starting camera…', 'warn');
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 640 }, height: { ideal: 480 } },
+      audio: false,
+    });
+    video.srcObject = stream;
+    await new Promise(res => { video.onloadedmetadata = res; });
+    running = true;
+    videoWrap.classList.add('running');
+    videoEmpty.style.display = 'none';
+    setConn('● Live');
+    setStatus('Analysing live…', 'live');
+    setAlert('Camera active. Analysing surroundings.', 'ok');
+    speak('Camera started. Analysing your surroundings.', { force: true });
+    setTimeout(loopAnalyse, 600);
+    return true;
+  } catch(err) {
+    const msg = 'Camera error: ' + err.message;
+    setAlert(msg, 'danger');
+    speak(msg, { force: true });
+    setStatus('Camera error', 'error');
+    return false;
+  }
+}
+function stopCamera() {
+  running = false; ocrLock = false;
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  videoWrap.classList.remove('running');
+  videoEmpty.style.display = '';
+  setConn('● Stopped'); setStatus('Stopped');
+  setAlert('Camera stopped.', 'warn');
+  speak('Camera stopped.', { force: true });
+  vibrate([40, 30, 40]);
+}
+
+function captureFrame() {
+  const c = document.createElement('canvas');
+  c.width = 640; c.height = 480;
+  c.getContext('2d').drawImage(video, 0, 0, 640, 480);
+  return c.toDataURL('image/jpeg', 0.78);
+}
+
+// ── M4: Path metrics computation (client-side mirror of server) ──
+function clientComputeMetrics(safeScores) {
+  const L = (safeScores && safeScores.left)   || 0;
+  const C = (safeScores && safeScores.center) || 0;
+  const R = (safeScores && safeScores.right)  || 0;
+  const sumLR = L + R;
+  return {
+    free_space_ratio:       C,
+    corridor_score:         0.5 * C + 0.3 * Math.min(L, R) + 0.2 * Math.max(L, R),
+    avg_safe_width:         C,
+    obstacle_density:       1 - C,
+    approach_clarity:       C,
+    forward_safety_avg:     C,
+    lateral_safety_balance: sumLR < 1e-6 ? 0.5 : L / sumLR,
+    depth_openness:         0.5 + 0.5 * C,
+    path_centrality:        C,
+    vertical_openness:      0.5 + 0.5 * C,
+  };
+}
+
+function aggregateMetrics(framesMetrics) {
+  const out = {};
+  for (const k of METRIC_KEYS) {
+    const values = framesMetrics.map(m => m[k] || 0);
+    const mean = values.reduce((a, b) => a + b, 0) / values.length;
+    const std  = Math.sqrt(values.map(v => (v - mean) ** 2).reduce((a, b) => a + b, 0)
+                            / values.length);
+    const min  = Math.min(...values);
+    const max  = Math.max(...values);
+    const hist = new Array(HIST_BINS).fill(0);
+    values.forEach(v => {
+      const bin = Math.min(HIST_BINS - 1, Math.max(0, Math.floor(v * HIST_BINS)));
+      hist[bin]++;
+    });
+    const histSum = hist.reduce((a, b) => a + b, 0);
+    out[k] = {
+      mean:      mean,
+      std:       std,
+      min:       min,
+      max:       max,
+      histogram: hist.map(h => h / histSum),
+    };
+  }
+  return out;
+}
+
+function buildPathProfile(framesMetrics) {
+  return {
+    version: 1,
+    keys:    METRIC_KEYS,
+    metrics: aggregateMetrics(framesMetrics),
+  };
+}
+
+// ── Core analysis ─────────────────────────────────────────────
+async function analyseOnce({ manualOCR = false } = {}) {
+  if (!running || busy || video.readyState < 2) return;
+  if (ocrLock && !manualOCR) return;
+  if (savingInProgress && !manualOCR) return;
+  busy = true;
+  try {
+    const res = await fetch('/analyze_frame', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: captureFrame(), force_ocr: manualOCR }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const d = await res.json();
+
+    if (d.safe_scores) lastSafeScores = d.safe_scores;
+
+    // OCR branch — silent by design (see requestOCR below).
+    // This branch is reached only by the explicit `force_ocr: true` request,
+    // and it speaks ONLY the OCR result, never a "hold still" preamble.
+    if (manualOCR || d.ocr_triggered) {
+      const txt = (d.ocr_text || '').trim();
+      const msg = txt
+        ? `Text reads: ${txt}`
+        : 'No clear text found. Move closer and keep text centred.';
+      setAlert(msg, 'ocr');
+      ocrEl.textContent = txt || '—';
+      sceneEl.textContent = '— (OCR mode)';
+      navEl.textContent   = '—';
+      riskEl.textContent  = '—';
+      latencyEl.textContent = `${d.latency_ms || '—'} ms`;
+      detectionsEl.textContent = '—';
+      // Only the result speaks — no preamble.
+      speak(msg, { force: true, rate: 0.95 });
+      return;
+    }
+
+    renderTarget(d.location_status || null);
+
+    const locStatus = d.location_status || {};
+    const locState  = locStatus.location_state;
+    const locMsg    = locStatus.location_message || '';
+    const isArrival = locState === 'arrived' && lastLocationState !== 'arrived';
+
+    if (isArrival) {
+      const arrivalMsg = locMsg || 'You arrive to the destination.';
+      setAlert(arrivalMsg, 'loc');
+      speak(arrivalMsg, { force: true });
+      vibrate([120, 60, 120, 60, 250]);
+      setTimeout(() => speak(arrivalMsg, { force: true }), 80);
+      lastLocationMsg = arrivalMsg;
+    }
+    else if (locState === 'searching' || locState === 'approaching') {
+      if (locMsg && locMsg !== lastLocationMsg) {
+        const typeClass = locState === 'approaching' ? 'warn' : 'loc';
+        setAlert(locMsg, typeClass);
+        speak(locMsg);
+        lastLocationMsg = locMsg;
+      }
+    }
+    else {
+      const alertText = d.alert || '';
+      const alertMode = d.alert_mode || 'silent';
+      let type = 'ok';
+      if (alertMode === 'safety')        type = 'danger';
+      else if (alertMode === 'navigation') type = 'warn';
+      else if (alertMode === 'scene')      type = 'ok';
+
+      if (alertText) {
+        setAlert(alertText, type);
+        if (alertText !== lastAlert) speak(alertText);
+        lastAlert = alertText;
+      } else {
+        setAlert('Surroundings clear.', 'ok');
+        lastAlert = 'Surroundings clear.';
+      }
+    }
+
+    sceneEl.textContent = d.scene
+      ? `${d.scene.replace(/_/g,' ')} (${Math.round((d.scene_conf||0)*100)}%)`
+      : '—';
+    navEl.textContent     = d.nav_text || d.nav_command || '—';
+    ocrEl.textContent     = d.ocr_text || '—';
+    riskEl.textContent    = d.risk_score != null ? `${Math.round(d.risk_score * 100)}%` : '—';
+    latencyEl.textContent = `${d.latency_ms || '—'} ms | ${d.fps_estimate || '—'} fps`;
+    renderDetections(d.detections);
+    setStatus('Analysing live…', 'live');
+    setConn('● Live');
+
+  } catch(e) {
+    const msg = 'Server error. Check connection.';
+    setAlert(msg, 'danger');
+    setStatus('Server error', 'error');
+    setConn('● Offline', true);
+    speak(msg);
+    console.error(e);
+  } finally { busy = false; }
+}
+
+// ── OCR (silent, voice-only, no button-mode behaviour) ──────
+//
+// There is no "Read Text" button anymore. This function is reached ONLY
+// through the voice command "read text" / "what does it say". It does
+// not announce itself ("Reading text… please hold still") and does not
+// lock the UI into a fake "OCR Mode" for 3.5 seconds. The only sound
+// the user hears is the OCR *result*.
+//
+// If the camera is off, it tells the user once and stops. No retry loop,
+// no UI mode change, no forced re-speak.
+async function requestOCR() {
+  if (!running) {
+    const msg = 'Please start the camera first, then say read text again.';
+    setAlert(msg, 'warn');
+    speak(msg, { force: true });
+    return;
+  }
+  if (ocrLock) return;            // already in flight; stay silent
+  ocrLock = true;
+  try {
+    await analyseOnce({ manualOCR: true });
+  } catch (e) {
+    /* analyseOnce already speaks the error */
+  } finally {
+    // Brief debounce so the same voice command isn't acted on twice in a row.
+    setTimeout(() => { ocrLock = false; }, 800);
+  }
+}
+
+// ── M4: Save current view as a new location (3-second profile) ─
+function openSaveModal() {
+  if (!running) {
+    const msg = 'Start the camera first, then point it at the place you want to save.';
+    setAlert(msg, 'warn');
+    speak(msg, { force: true });
+    return;
+  }
+  saveNameInput.value = '';
+  profileProgress.classList.add('hidden');
+  saveModal.classList.add('show');
+  setTimeout(() => saveNameInput.focus(), 100);
+  // The button click is silent per the new contract, so no announcement
+  // is made when the modal opens. The user can type the name directly.
+}
+function closeSaveModal() {
+  saveModal.classList.remove('show');
+  profileProgress.classList.add('hidden');
+}
+
+async function confirmSave() {
+  const name = (saveNameInput.value || '').trim();
+  if (!name) {
+    speak('Please enter a name.', { force: true });
+    return;
+  }
+  if (savingInProgress) return;
+
+  // ── BUG FIX: refuse to save if the camera is off ────────────
+  // The 3-second profile capture needs live frames. If the camera is
+  // stopped, captureFrame() would draw from a frozen/empty <video>
+  // and we'd persist a junk place. Refuse loudly instead.
+  if (!running || !stream) {
+    const msg = `Cannot save ${name.replace(/_/g, ' ')}: the camera is off. ` +
+                `Please say "start camera" first, then try again.`;
+    setAlert(msg, 'danger');
+    speak(msg, { force: true });
+    return;
+  }
+
+  savingInProgress = true;
+  closeSaveModal();
+  setAlert(`Building path profile for ${name}…`, 'warn');
+  // Silent during the 3-second capture: the user can hear the alert
+  // banner update on screen and the system speaks only the final
+  // success/failure message.
+
+  profileProgress.classList.remove('hidden');
+  profileFill.style.width = '0%';
+  profileStatus.textContent = 'Capturing frames…';
+
+  const PROFILE_DURATION_MS = 3000;
+  const FRAME_INTERVAL_MS   = 100;
+  const startTime = Date.now();
+  const framesMetrics = [];
+  let lastSafe = { left: 0, center: 0, right: 0 };
+
+  while (Date.now() - startTime < PROFILE_DURATION_MS) {
+    const elapsed = Date.now() - startTime;
+    const pct = Math.min(100, (elapsed / PROFILE_DURATION_MS) * 100);
+    profileFill.style.width = pct + '%';
+    const remaining = Math.max(0, (PROFILE_DURATION_MS - elapsed) / 1000);
+    profileStatus.textContent =
+      `Frame ${framesMetrics.length + 1}/30 — ${remaining.toFixed(1)}s left`;
+
+    try {
+      const r = await fetch('/analyze_frame', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: captureFrame(), force_ocr: false }),
+      });
+      if (r.ok) {
+        const d = await r.json();
+        if (d.safe_scores) { lastSafe = d.safe_scores; lastSafeScores = d.safe_scores; }
+      }
+    } catch (e) { /* keep going even if a single frame fails */ }
+
+    const m = clientComputeMetrics(lastSafe);
+    framesMetrics.push(m);
+
+    await sleep(FRAME_INTERVAL_MS);
+  }
+
+  const pathProfile = buildPathProfile(framesMetrics);
+  const pathSig = [lastSafe.left || 0, lastSafe.center || 0, lastSafe.right || 0];
+  profileStatus.textContent = `Profile built from ${framesMetrics.length} frames. Uploading…`;
+
+  const stillImage = captureFrame();
+
+  try {
+    const r = await fetch('/locations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name:           name,
+        image:          stillImage,
+        description:    '',
+        path_signature: pathSig,
+        path_profile:   pathProfile,
+      }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail || r.statusText);
+    speak(`Saved ${d.location.display_name} with path profile.`, { force: true });
+    setAlert(`Saved "${d.location.display_name}" with M4 path profile.`, 'ok');
+    loadPlaces();
+  } catch (e) {
+    speak(`Could not save place: ${e.message}`, { force: true });
+    setAlert(`Save failed: ${e.message}`, 'danger');
+  } finally {
+    profileProgress.classList.add('hidden');
+    profileFill.style.width = '0%';
+    savingInProgress = false;
+  }
+}
+
+// ── Voice command (Web Speech API) ──────────────────────────
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+let recognizing  = false;
+function startVoiceCommand() {
+  if (!SR) {
+    speak('Voice commands are not supported in this browser. Try Chrome or Edge.', { force: true });
+    return;
+  }
+  if (recognizing) { try { recognition.stop(); } catch(e) {} return; }
+
+  voiceLock = true;
+  try { speechSynthesis.cancel(); } catch(e) {}
+  ttsQueue = []; ttsBusy = false;
+  setConn('● Listening');
+  setAlert('Listening for a command…', 'warn');
+
+  recognition = new SR();
+  recognition.lang = 'en-US';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+  recognition.continuous = false;
+
+  recognition.onstart = () => {
+    recognizing = true;
+    voiceBtn.classList.add('locked');
+    voiceBtn.innerHTML = '🛑 Listening…<span class="sub" aria-hidden="true">Tap to stop</span>';
+  };
+  recognition.onerror = (ev) => {
+    recognizing = false;
+    voiceLock  = false;
+    voiceBtn.classList.remove('locked');
+    voiceBtn.innerHTML = '🎙️ Voice <span class="sub" aria-hidden="true">Say a command</span>';
+    speak(`Voice error: ${ev.error || 'unknown'}.`, { force: true });
+  };
+  recognition.onend = () => {
+    recognizing = false;
+    voiceLock  = false;
+    voiceBtn.classList.remove('locked');
+    voiceBtn.innerHTML = '🎙️ Voice <span class="sub" aria-hidden="true">Say a command</span>';
+    if (running) setConn('● Live');
+  };
+  recognition.onresult = (ev) => {
+    const text = (ev.results[0][0].transcript || '').toLowerCase().trim();
+    if (!text) return;
+    handleVoiceText(text);
+  };
+  try { recognition.start(); } catch(e) {
+    voiceLock = false;
+    speak('Could not start microphone.', { force: true });
+  }
+}
+
+async function handleVoiceText(text) {
+  // Order matters: more-specific camera phrases must be checked before
+  // the generic "stop"/"start" rules below.
+
+  // 1) Stop camera
+  if (/^(stop|end|shut down|turn off)(?: the)? (camera|stream)$/.test(text)) {
+    stopCamera();
+    return;
+  }
+  // 2) Stop / cancel navigation
+  if (/^(stop|cancel|abort|halt)(?: navigation| navigating| the navigation)?$/.test(text)) {
+    await stopNav();
+    return;
+  }
+  // 3) Start camera
+  if (/^(start|begin|turn on)(?: the)? (camera|analysis|stream)$/.test(text)) {
+    startCamera();
+    return;
+  }
+  // 4) Emergency
+  if (/^(emergency|help|sos|send help|i need help|call for help)$/.test(text)) {
+    handleEmergency();
+    return;
+  }
+  // 5) Repeat last alert
+  if (/^(repeat|say again|again)$/.test(text)) { repeatAlert(); return; }
+  // 6) Read text (silent, no preamble — see requestOCR)
+  if (/^(read|read text|read this|what does it say)$/.test(text)) {
+    requestOCR();
+    return;
+  }
+  // 7) Save place with a name
+  if (/^save(?: this| the)?(?: place| location)?(?: as| called)? (.+)$/.test(text)) {
+    const m = text.match(/^save(?: this| the)?(?: place| location)?(?: as| called)? (.+)$/);
+    const name = m[1].trim().replace(/\s+/g, '_');
+    if (!running) {
+      const msg = `Cannot save ${name.replace(/_/g, ' ')}: the camera is off. ` +
+                  `Please say "start camera" first, then try again.`;
+      setAlert(msg, 'danger');
+      speak(msg, { force: true });
+      return;
+    }
+    // Hand off to confirmSave with the name pre-filled.
+    saveNameInput.value = name;
+    await confirmSave();
+    return;
+  }
+  // 8) Save place (no name) — open the modal (silent, no announcement)
+  if (/^save(?: this| the)?(?: place| location)?$/.test(text)) {
+    openSaveModal();
+    return;
+  }
+  // 9) List saved places
+  if (/^(list|show|what are)(?: the| my| all)? ?(locations|places|rooms|destinations)$/.test(text)) {
+    await loadPlaces();
+    const rows = placesEl.querySelectorAll('.place-row');
+    if (rows.length === 0) speak('No saved places yet.', { force: true });
+    else {
+      const names = Array.from(placesEl.querySelectorAll('.place-name'))
+                       .map(el => el.textContent.replace(/^📍\s*/, '').split('\n')[0].trim());
+      speak('Saved places: ' + names.join(', '), { force: true });
+    }
+    return;
+  }
+  // 10) Go home
+  if (/^(go home|go to home|return home|take me home|home)$/.test(text)) {
+    await navigateTo('home');
+    return;
+  }
+  // 11) Go to a specific place
+  const navMatch = text.match(
+    /^(?:go to|navigate to|take me to|lead me to|find|where is|where's) (?:the |a |an )?(.+?)(?: please)?$/
+  );
+  if (navMatch) {
+    const raw = navMatch[1].trim();
+    const t   = raw.toLowerCase();
+    const saved = Array.from(placesEl.querySelectorAll('.place-row'))
+      .map(row => ({ name: row.getAttribute('data-name'),
+                     label: row.querySelector('.place-name').textContent.toLowerCase() }));
+    let chosen = null;
+    for (const s of saved) {
+      if (s.name === t || s.label.includes(t) || t.includes(s.name)) { chosen = s.name; break; }
+    }
+    await navigateTo(chosen || t.replace(/\s+/g, '_'));
+    return;
+  }
+  speak('I did not understand that command.', { force: true });
+}
+
+// ── Emergency ────────────────────────────────────────────────
+function sendEmergency() {
+  vibrate([100, 50, 100, 50, 200]);
+  speak('Emergency activated. Getting your GPS location.', { force: true });
+  setAlert('Getting GPS location…', 'danger');
+  if (!navigator.geolocation) {
+    speak('GPS not supported on this device.', { force: true });
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(pos => {
+    const lat = pos.coords.latitude.toFixed(6);
+    const lng = pos.coords.longitude.toFixed(6);
+    const map = `https://maps.google.com/?q=${lat},${lng}`;
+    const waMsg  = encodeURIComponent(`Emergency! I need help. My location:\n${map}`);
+    const smsMsg = encodeURIComponent(`Emergency! I need help. My location: ${map}`);
+    setAlert('Location found. Opening WhatsApp emergency message.', 'danger');
+    speak('Location found. Opening WhatsApp with your emergency message.', { force: true });
+    window.open(`https://wa.me/${EMERGENCY_PHONE}?text=${waMsg}`, '_blank');
+    setTimeout(() => {
+      speak('If WhatsApp did not open, SMS is also ready. Press Emergency again to send SMS.', { force: false });
+      emergencyBtn.dataset.smsUrl = `sms:+${EMERGENCY_PHONE}?body=${smsMsg}`;
+      emergencyBtn.dataset.smsReady = '1';
+    }, 2000);
+  }, err => {
+    const reasons = {
+      1: 'Location permission denied.', 2: 'Location unavailable.', 3: 'Location request timed out.',
+    };
+    speak(reasons[err.code] || 'Cannot get GPS location.', { force: true });
+  }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 });
+}
+function handleEmergency() {
+  if (emergencyBtn.dataset.smsReady === '1') {
+    emergencyBtn.dataset.smsReady = '0';
+    window.location.href = emergencyBtn.dataset.smsUrl;
+  } else { sendEmergency(); }
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function loopAnalyse() {
+  if (!running) return;
+  if (!ocrLock && !savingInProgress) analyseOnce();
+  setTimeout(loopAnalyse, INTERVAL_MS);
+}
+
+async function checkHealth() {
+  try {
+    const r = await fetch('/health');
+    if (r.ok) {
+      const h = await r.json();
+      if (h.missing_models && h.missing_models.length > 0) {
+        speak(`Warning: ${h.missing_models.length} model(s) missing.`, { force: true });
+      } else {
+        setStatus('Server ready');
+      }
+    }
+  } catch(e) {
+    setStatus('Server offline — check server.py', 'error');
+    setConn('● Offline', true);
+    speak('Warning: server is not reachable.', { force: true });
+  }
+}
+
+// ── Button click handlers (silent on press) ─────────────────
+//
+// All three remaining buttons (Voice, Save Place, Emergency) follow the
+// "silence on press" contract: the click itself does not speak. The
+// action's *result* may speak (handled inside each function).
+//
+// Emergency is the one exception that DOES speak on press, because
+// silence on a real emergency would be dangerous.
+emergencyBtn.onclick = handleEmergency;
+voiceBtn.onclick     = startVoiceCommand;
+saveLocBtn.onclick   = openSaveModal;
+refreshPlacesBtn.onclick = loadPlaces;
+saveConfirmBtn.onclick = confirmSave;
+saveCancelBtn.onclick  = closeSaveModal;
+saveNameInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); confirmSave(); }
+  if (e.key === 'Escape') { e.preventDefault(); closeSaveModal(); }
+});
+
+// "Go" and "✕" buttons inside the saved-places list: silent on press.
+placesEl.addEventListener('click', e => {
+  const go = e.target.closest('[data-go]');
+  if (go) navigateTo(go.getAttribute('data-go'));
+});
+
+// ── Keyboard shortcuts (only for actions that have a button) ─
+document.addEventListener('keydown', e => {
+  if (e.altKey) {
+    const map = {
+      v: startVoiceCommand,   // Voice
+      k: openSaveModal,       // Save Place
+      e: handleEmergency,     // Emergency
+    };
+    const fn = map[e.key.toLowerCase()];
+    if (fn) { e.preventDefault(); fn(); }
+  }
+});
+
+window.addEventListener('load', () => {
+  speak('SmartVision+ ready. Say "start camera" to begin, or tap Voice for commands.', { force: true });
+  checkHealth();
+  loadPlaces();
+});
+</script>
+
+</body>
+</html>
